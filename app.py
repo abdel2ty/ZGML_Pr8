@@ -6,61 +6,108 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.cluster.hierarchy as sch
+import os
 
-# ----------------------------------------------------
-# عنوان التطبيق
-# ----------------------------------------------------
+# -------------------------------
+# Page config & Title
+# -------------------------------
+st.set_page_config(page_title="Customer Segmentation Clustering", layout="wide")
 st.title("Customer Segmentation Clustering")
 
-# ----------------------------------------------------
-# رفع الداتا
-# ----------------------------------------------------
-uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+# -------------------------------
+# Sidebar
+# -------------------------------
+st.sidebar.header("About App")
+st.sidebar.info("""
+This app performs Customer Segmentation using:
+- K-Means Clustering
+- Agglomerative Clustering
+
+Upload your CSV file, select cluster numbers, and explore segments.
+""")
+
+# -------------------------------
+# Download sample CSV (if exists)
+# -------------------------------
+sample_path = "marketing_campaign.csv"
+if os.path.exists(sample_path):
+    st.sidebar.warning("You can download the sample CSV below")
+    st.sidebar.download_button(
+        label="Download marketing_campaign.csv",
+        data=open(sample_path, "rb"),
+        file_name="marketing_campaign.csv",
+        mime="text/csv"
+    )
+else:
+    st.sidebar.warning("marketing_campaign.csv not found on server.")
+
+# -------------------------------
+# CSV Upload
+# -------------------------------
+st.subheader("Upload your CSV file")
+uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
+
 if uploaded_file:
-    data = pd.read_csv(uploaded_file, sep='\t')
-    st.dataframe(data.head())
-    
-    # ------------------------------------------------
-    # اختيار المميزات الرقمية
-    # ------------------------------------------------
-    numeric_features = data.select_dtypes(include=['int64','float64']).columns
-    X = data[numeric_features].fillna(0)
-    
-    # Standardization
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    
-    # ------------------------------------------------
-    # K-Means Clustering
-    # ------------------------------------------------
-    k = st.slider("Select number of clusters for K-Means", 2, 10, 4)
-    kmeans = KMeans(n_clusters=k, random_state=42)
-    clusters_km = kmeans.fit_predict(X_scaled)
-    data['Cluster_KMeans'] = clusters_km
-    
-    st.subheader("K-Means Cluster Summary")
-    st.dataframe(data.groupby('Cluster_KMeans')[numeric_features].mean())
-    
-    # ------------------------------------------------
-    # Agglomerative Clustering
-    # ------------------------------------------------
-    n_agg = st.slider("Select number of clusters for Agglomerative", 2, 10, 4)
-    agg = AgglomerativeClustering(n_clusters=n_agg)
-    clusters_agg = agg.fit_predict(X_scaled)
-    data['Cluster_Agg'] = clusters_agg
-    
-    st.subheader("Agglomerative Cluster Summary")
-    st.dataframe(data.groupby('Cluster_Agg')[numeric_features].mean())
-    
-    # ------------------------------------------------
-    # رسومات
-    # ------------------------------------------------
-    st.subheader("Cluster Distribution (K-Means)")
-    fig, ax = plt.subplots()
-    sns.countplot(x='Cluster_KMeans', data=data, ax=ax)
-    st.pyplot(fig)
-    
-    st.subheader("Cluster Distribution (Agglomerative)")
-    fig2, ax2 = plt.subplots()
-    sns.countplot(x='Cluster_Agg', data=data, ax=ax2)
-    st.pyplot(fig2)
+    try:
+        df = pd.read_csv(uploaded_file)
+        st.subheader("Preview of Uploaded Data")
+        st.dataframe(df.head())
+
+        # -----------------------------------
+        # Numeric features only
+        # -----------------------------------
+        numeric_features = df.select_dtypes(include=['int64', 'float64']).columns
+        X = df[numeric_features].fillna(0)
+
+        # -----------------------------------
+        # Standardization
+        # -----------------------------------
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        # -----------------------------------
+        # K-Means
+        # -----------------------------------
+        st.subheader("K-Means Clustering")
+        k = st.slider("Select number of K-Means clusters", 2, 10, 4)
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        df['Cluster_KMeans'] = kmeans.fit_predict(X_scaled)
+
+        st.dataframe(df.groupby('Cluster_KMeans')[numeric_features].mean())
+
+        # Plot
+        st.subheader("K-Means Cluster Distribution")
+        fig, ax = plt.subplots()
+        sns.countplot(x='Cluster_KMeans', data=df, ax=ax)
+        st.pyplot(fig)
+
+        # -----------------------------------
+        # Agglomerative Clustering
+        # -----------------------------------
+        st.subheader("Agglomerative Clustering")
+        n_agg = st.slider("Select number of Agglomerative clusters", 2, 10, 4)
+        agg = AgglomerativeClustering(n_clusters=n_agg)
+        df['Cluster_Agg'] = agg.fit_predict(X_scaled)
+
+        st.dataframe(df.groupby('Cluster_Agg')[numeric_features].mean())
+
+        # Plot
+        st.subheader("Agglomerative Cluster Distribution")
+        fig2, ax2 = plt.subplots()
+        sns.countplot(x='Cluster_Agg', data=df, ax=ax2)
+        st.pyplot(fig2)
+
+        # -----------------------------------
+        # Download processed data
+        # -----------------------------------
+        st.subheader("Download Clustered Data")
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Download Results CSV",
+            data=csv,
+            file_name="clustered_results.csv",
+            mime="text/csv"
+        )
+
+    except Exception as e:
+        st.error(f"Error processing file: {e}")

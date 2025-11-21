@@ -29,17 +29,17 @@ Upload your CSV/TSV file, select cluster numbers, and explore customer segments.
 # -------------------------------
 # Download sample CSV (if exists)
 # -------------------------------
-sample_path = "sample.csv"
+sample_path = "marketing_campaign.csv"
 if os.path.exists(sample_path):
     st.sidebar.warning("You can download the sample CSV below")
     st.sidebar.download_button(
-        label="Download sample.csv",
+        label="Download marketing_campaign.csv",
         data=open(sample_path, "rb"),
-        file_name="sample.csv",
+        file_name="marketing_campaign.csv",
         mime="text/csv"
     )
 else:
-    st.sidebar.warning("sample.csv not found on server.")
+    st.sidebar.warning("marketing_campaign.csv not found on server.")
 
 # -------------------------------
 # CSV Upload
